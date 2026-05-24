@@ -1,21 +1,13 @@
 package com.dp.logcatapp.ui.common
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOut
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollIndicatorState
@@ -79,8 +71,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dp.logcat.Log
@@ -228,7 +218,12 @@ fun LogsList(
             .windowInsetsPadding(
               safeDrawingInsetsHorizontal
             )
-            .wrapContentHeight(),
+            .wrapContentHeight()
+            .animateItem(
+              fadeInSpec = null,
+              fadeOutSpec = null,
+              placementSpec = spring(stiffness = Spring.StiffnessHigh)
+            ),
           priority = item.priority,
           tag = if (expanded || ToggleableLogItem.Tag in enabledLogItems) {
             maybeHighlightSearchHit(
@@ -579,196 +574,136 @@ private fun LogItemCompact(
   priorityColor: Color,
   expanded: Boolean,
 ) {
-  AnimatedContent(
-    modifier = modifier,
-    targetState = expanded,
-    label = "animate-compact-log-expanded-state",
-    transitionSpec = {
-      val springStiffness = Spring.StiffnessMedium
-      if (targetState) {
-        // expanded in, collapsed out
-        ContentTransform(
-          targetContentEnter = slideIn(
-            animationSpec = spring(
-              stiffness = springStiffness,
-              visibilityThreshold = IntOffset.VisibilityThreshold
-            )
-          ) { size ->
-            IntOffset(
-              x = 0,
-              y = -size.height
-            )
-          },
-          initialContentExit = ExitTransition.None,
-          sizeTransform = SizeTransform(
-            sizeAnimationSpec = { _, _ ->
-              spring(
-                stiffness = springStiffness,
-                visibilityThreshold = IntSize.VisibilityThreshold,
-              )
-            }
-          )
-        )
-      } else {
-        // collapsed in, expanded out
-        ContentTransform(
-          targetContentEnter = EnterTransition.None,
-          initialContentExit = slideOut(
-            animationSpec = spring(
-              stiffness = springStiffness,
-              visibilityThreshold = IntOffset.VisibilityThreshold
-            )
-          ) { size ->
-            IntOffset(
-              x = 0,
-              y = -size.height
-            )
-          },
-          // Render expanded one on top.
-          targetContentZIndex = -1f,
-          sizeTransform = SizeTransform(
-            sizeAnimationSpec = { _, _ ->
-              spring(
-                stiffness = springStiffness,
-                visibilityThreshold = IntSize.VisibilityThreshold,
-              )
-            }
-          )
-        )
-      }
-    }
-  ) { targetExpandedState ->
-    Row(
+  Row(
+    modifier = modifier
+      .background(MaterialTheme.colorScheme.background)
+      .height(IntrinsicSize.Max),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Box(
       modifier = Modifier
-        .background(MaterialTheme.colorScheme.background)
-        .height(IntrinsicSize.Max),
-      verticalAlignment = Alignment.CenterVertically,
+        .fillMaxHeight()
+        .background(priorityColor)
+        .padding(4.dp),
     ) {
-      Box(
+      Text(
+        modifier = Modifier.align(Alignment.Center),
+        text = priority.value,
+        style = TextStyle.Default.copy(
+          fontSize = 12.sp,
+          fontFamily = RobotoMonoFontFamily,
+          fontWeight = FontWeight.Bold,
+          color = Color.White,
+          textAlign = TextAlign.Center,
+        ),
+      )
+    }
+    if (expanded) {
+      val textColor = logListItemSecondaryColor()
+      Column(
         modifier = Modifier
-          .fillMaxHeight()
-          .background(priorityColor)
-          .padding(4.dp),
+          .fillMaxWidth()
+          .padding(all = 5.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
       ) {
-        Text(
-          modifier = Modifier.align(Alignment.Center),
-          text = priority.value,
-          style = TextStyle.Default.copy(
-            fontSize = 12.sp,
-            fontFamily = RobotoMonoFontFamily,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-          ),
-        )
-      }
-      if (targetExpandedState) {
-        val textColor = logListItemSecondaryColor()
-        Column(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(all = 5.dp),
-          verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-          if (tag != null) {
-            Text(
-              modifier = Modifier.fillMaxWidth(),
-              text = tag,
-              style = TextStyle.Default.copy(
-                fontSize = 13.sp,
-                fontFamily = RobotoMonoFontFamily,
-                fontWeight = FontWeight.Medium,
-              )
-            )
-          }
-          Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = message,
-            style = TextStyle.Default.copy(
-              fontSize = 12.sp,
-              fontFamily = RobotoMonoFontFamily,
-            )
-          )
-          if (packageName != null) {
-            Text(
-              text = packageName,
-              style = TextStyle.Default.copy(
-                fontSize = 12.sp,
-                fontFamily = RobotoMonoFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-              )
-            )
-          }
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Absolute.spacedBy(10.dp),
-          ) {
-            Text(
-              text = date,
-              style = TextStyle.Default.copy(
-                fontSize = 12.sp,
-                fontFamily = RobotoMonoFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-              )
-            )
-            Text(
-              text = time,
-              style = TextStyle.Default.copy(
-                fontSize = 12.sp,
-                fontFamily = RobotoMonoFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-              )
-            )
-            Text(
-              text = pid,
-              style = TextStyle.Default.copy(
-                fontSize = 12.sp,
-                fontFamily = RobotoMonoFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-              )
-            )
-            Text(
-              text = tid,
-              style = TextStyle.Default.copy(
-                fontSize = 12.sp,
-                fontFamily = RobotoMonoFontFamily,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-              )
-            )
-          }
-        }
-      } else {
-        Spacer(modifier = Modifier.width(4.dp))
         if (tag != null) {
           Text(
-            modifier = Modifier.weight(0.2f),
+            modifier = Modifier.fillMaxWidth(),
             text = tag,
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 1,
             style = TextStyle.Default.copy(
-              fontSize = 12.sp,
+              fontSize = 13.sp,
               fontFamily = RobotoMonoFontFamily,
               fontWeight = FontWeight.Medium,
             )
           )
-          Spacer(modifier = Modifier.width(4.dp))
         }
         Text(
-          modifier = Modifier.weight(0.8f),
+          modifier = Modifier.fillMaxWidth(),
           text = message,
+          style = TextStyle.Default.copy(
+            fontSize = 12.sp,
+            fontFamily = RobotoMonoFontFamily,
+          )
+        )
+        if (packageName != null) {
+          Text(
+            text = packageName,
+            style = TextStyle.Default.copy(
+              fontSize = 12.sp,
+              fontFamily = RobotoMonoFontFamily,
+              fontWeight = FontWeight.Bold,
+              color = textColor,
+            )
+          )
+        }
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.Absolute.spacedBy(10.dp),
+        ) {
+          Text(
+            text = date,
+            style = TextStyle.Default.copy(
+              fontSize = 12.sp,
+              fontFamily = RobotoMonoFontFamily,
+              fontWeight = FontWeight.Bold,
+              color = textColor,
+            )
+          )
+          Text(
+            text = time,
+            style = TextStyle.Default.copy(
+              fontSize = 12.sp,
+              fontFamily = RobotoMonoFontFamily,
+              fontWeight = FontWeight.Bold,
+              color = textColor,
+            )
+          )
+          Text(
+            text = pid,
+            style = TextStyle.Default.copy(
+              fontSize = 12.sp,
+              fontFamily = RobotoMonoFontFamily,
+              fontWeight = FontWeight.Bold,
+              color = textColor,
+            )
+          )
+          Text(
+            text = tid,
+            style = TextStyle.Default.copy(
+              fontSize = 12.sp,
+              fontFamily = RobotoMonoFontFamily,
+              fontWeight = FontWeight.Bold,
+              color = textColor,
+            )
+          )
+        }
+      }
+    } else {
+      Spacer(modifier = Modifier.width(4.dp))
+      if (tag != null) {
+        Text(
+          modifier = Modifier.weight(0.2f),
+          text = tag,
           overflow = TextOverflow.Ellipsis,
           maxLines = 1,
           style = TextStyle.Default.copy(
             fontSize = 12.sp,
             fontFamily = RobotoMonoFontFamily,
+            fontWeight = FontWeight.Medium,
           )
         )
+        Spacer(modifier = Modifier.width(4.dp))
       }
+      Text(
+        modifier = Modifier.weight(0.8f),
+        text = message,
+        overflow = TextOverflow.Ellipsis,
+        maxLines = 1,
+        style = TextStyle.Default.copy(
+          fontSize = 12.sp,
+          fontFamily = RobotoMonoFontFamily,
+        )
+      )
     }
   }
 }
