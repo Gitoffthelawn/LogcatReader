@@ -7,19 +7,15 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -29,8 +25,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewCompact
@@ -39,7 +33,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -56,6 +49,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -107,25 +101,20 @@ private const val COMPACT_VIEW_KEY = "saved_logs_viewer_compact_view_key"
 @Composable
 fun SavedLogsViewerScreen(
   modifier: Modifier,
-  uri: Uri?,
+  uri: Uri,
+  onNavBack: () -> Unit,
 ) {
   val context = LocalContext.current
-  val activity = LocalActivity.current
+  val updatedOnNavBack by rememberUpdatedState(onNavBack)
   var logs by remember { mutableStateOf<LoadLogsState>(LoadLogsState.Loading) }
-  LaunchedEffect(uri, context, activity) {
-    if (uri == null) {
+  LaunchedEffect(uri, context) {
+    logs = loadLogs(context = context, uri = uri)
+    if (logs is LoadLogsState.FileOpenError) {
       context.showToast(context.getString(R.string.error_opening_source))
-      activity?.finish()
-    } else {
-      logs = loadLogs(context = context, uri = uri)
-
-      if (logs is LoadLogsState.FileOpenError) {
-        context.showToast(context.getString(R.string.error_opening_source))
-        activity?.finish()
-      } else if (logs is LoadLogsState.LogsParseError) {
-        context.showToast(context.getString(R.string.unsupported_source))
-        activity?.finish()
-      }
+      updatedOnNavBack()
+    } else if (logs is LoadLogsState.LogsParseError) {
+      context.showToast(context.getString(R.string.unsupported_source))
+      updatedOnNavBack()
     }
   }
 
@@ -206,6 +195,7 @@ fun SavedLogsViewerScreen(
         subtitle = (logs as? LoadLogsState.Loaded)?.logs?.size?.toString(),
         compactViewEnabled = compactViewPreference,
         showDropDownMenu = showDropDownMenu,
+        onClickBack = onNavBack,
         onClickSearch = {
           showSearchBar = true
         },
@@ -410,6 +400,7 @@ private fun AppBar(
   subtitle: String?,
   compactViewEnabled: Boolean,
   showDropDownMenu: Boolean,
+  onClickBack: () -> Unit,
   onClickSearch: () -> Unit,
   onShowDropdownMenu: () -> Unit,
   onDismissDropdownMenu: () -> Unit,
@@ -426,9 +417,7 @@ private fun AppBar(
         text = stringResource(R.string.navigate_up),
       ) {
         IconButton(
-          onClick = {
-            activity?.finish()
-          },
+          onClick = onClickBack,
           colors = IconButtonDefaults.iconButtonColors(
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
           ),

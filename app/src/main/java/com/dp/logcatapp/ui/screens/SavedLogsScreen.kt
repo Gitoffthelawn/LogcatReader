@@ -1,12 +1,11 @@
 package com.dp.logcatapp.ui.screens
 
 import android.content.Context
-import android.content.Intent
 import android.icu.text.SimpleDateFormat
+import android.net.Uri
 import android.os.Build
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.compose.animation.AnimatedVisibility
@@ -104,7 +103,6 @@ import androidx.room.withTransaction
 import com.dp.logcat.LogcatStreamReader
 import com.dp.logcat.LogcatUtil.countLogs
 import com.dp.logcatapp.R
-import com.dp.logcatapp.activities.SavedLogsViewerActivity
 import com.dp.logcatapp.db.LogcatReaderDatabase
 import com.dp.logcatapp.db.SavedLogInfo
 import com.dp.logcatapp.ui.common.Dialog
@@ -113,8 +111,8 @@ import com.dp.logcatapp.ui.common.LOGCAT_DIR
 import com.dp.logcatapp.ui.common.WithTooltip
 import com.dp.logcatapp.ui.theme.AppTypography
 import com.dp.logcatapp.ui.theme.Shapes
-import com.dp.logcatapp.util.ShareUtils
 import com.dp.logcatapp.util.ByteUnitFormatter
+import com.dp.logcatapp.util.ShareUtils
 import com.dp.logcatapp.util.closeQuietly
 import com.dp.logcatapp.util.rememberIntSharedPreference
 import com.dp.logcatapp.util.showToast
@@ -143,8 +141,10 @@ private val SORT_ORDER_DEFAULT = SortOrder.Dsc.ordinal
 @Composable
 fun SavedLogsScreen(
   modifier: Modifier,
-  viewModel: SavedLogsScreenViewModel = viewModel(),
+  onClickLogFile: (Uri) -> Unit,
+  onNavBack: () -> Unit,
 ) {
+  val viewModel = viewModel<SavedLogsScreenViewModel>()
   val context = LocalContext.current
   val coroutineScope = rememberCoroutineScope()
 
@@ -204,6 +204,7 @@ fun SavedLogsScreen(
           } else null
         } else null,
         sortEnabled = savedLogs?.logFiles?.isNotEmpty() == true,
+        onClickBack = onNavBack,
         onClickSort = { showSortSheet = true },
       )
       AnimatedVisibility(
@@ -351,9 +352,7 @@ fun SavedLogsScreen(
                       viewModel.selected += item
                     },
                     onClick = {
-                      val intent = Intent(context, SavedLogsViewerActivity::class.java)
-                      intent.setDataAndType(item.info.path.toUri(), "text/plain")
-                      context.startActivity(intent)
+                      onClickLogFile(item.info.path.toUri())
                     }
                   )
                 } else {
@@ -425,6 +424,7 @@ private fun AppBar(
   title: String,
   subtitle: String?,
   sortEnabled: Boolean,
+  onClickBack: () -> Unit,
   onClickSort: () -> Unit,
 ) {
   TopAppBar(
@@ -436,11 +436,8 @@ private fun AppBar(
         ),
         text = stringResource(R.string.navigate_up),
       ) {
-        val activity = LocalActivity.current
         IconButton(
-          onClick = {
-            activity?.finish()
-          },
+          onClick = onClickBack,
           colors = IconButtonDefaults.iconButtonColors(
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
           ),

@@ -1,7 +1,6 @@
 package com.dp.logcatapp.ui.screens
 
 import android.content.Intent
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.compose.foundation.clickable
@@ -106,12 +105,12 @@ private const val PLAY_URL = "https://play.google.com/store/apps/details?id=%s"
 @Composable
 fun SettingsScreen(
   modifier: Modifier,
+  onNavBack: () -> Unit,
 ) {
   Scaffold(
     modifier = modifier,
     contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical),
     topBar = {
-      val activity = LocalActivity.current
       TopAppBar(
         navigationIcon = {
           WithTooltip(
@@ -122,9 +121,7 @@ fun SettingsScreen(
             text = stringResource(R.string.navigate_up),
           ) {
             IconButton(
-              onClick = {
-                activity?.finish()
-              },
+              onClick = onNavBack,
               colors = IconButtonDefaults.iconButtonColors(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
               ),

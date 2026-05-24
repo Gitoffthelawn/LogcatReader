@@ -12,8 +12,9 @@ junitVersion = "4.13.2"
 coroutinesAndroidVersion = "1.11.0"
 coroutinesCoreVersion = "1.11.0"
 lifecycleCommonJava8Version = "2.10.0"
-lifecycleViewmodelComposeVersion = "2.10.0"
+lifecycleViewmodelVersion = "2.10.0"
 materialVersion = "1.14.0"
+nav3Core = "1.1.2"
 preferenceKtxVersion = "1.2.1"
 roomVersion = "2.8.4"
 testRunnerVersion = "1.7.0"
@@ -46,11 +47,14 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutinesCoreVersion" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesCoreVersion" }
 lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "lifecycleCommonJava8Version" }
-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelComposeVersion" }
+lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelVersion" }
+lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelVersion" }
 material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 material3 = { module = "androidx.compose.material3:material3" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockkVersion" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
+androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = "preferenceKtxVersion" }
 material = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomVersion" }

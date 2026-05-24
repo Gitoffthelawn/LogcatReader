@@ -1,7 +1,6 @@
 package com.dp.logcatapp.ui.screens
 
 import android.Manifest
-import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -9,6 +8,7 @@ import android.content.ServiceConnection
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -117,8 +117,8 @@ import androidx.compose.ui.util.fastForEach
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
@@ -128,12 +128,8 @@ import com.dp.logcat.Log
 import com.dp.logcat.LogcatSession
 import com.dp.logcat.LogcatSession.RecordingFileInfo
 import com.dp.logcat.LogcatUtil
-import com.dp.logcatapp.LogcatApp
 import com.dp.logcatapp.R
-import com.dp.logcatapp.activities.FiltersActivity
-import com.dp.logcatapp.activities.SavedLogsActivity
-import com.dp.logcatapp.activities.SavedLogsViewerActivity
-import com.dp.logcatapp.activities.SettingsActivity
+import com.dp.logcatapp.ui.MainActivityViewModel
 import com.dp.logcatapp.db.FilterInfo
 import com.dp.logcatapp.db.LogcatReaderDatabase
 import com.dp.logcatapp.db.RegexEnabledFilterType
@@ -173,7 +169,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.Eagerly
 import kotlinx.coroutines.flow.asStateFlow
@@ -210,10 +205,13 @@ private const val ENABLED_LOG_ITEMS_KEY = "toggleable_log_items_pref_key"
 @Composable
 fun DeviceLogsScreen(
   modifier: Modifier,
-  stopRecordingSignal: Flow<Unit>,
-  onRecordingStatusChanged: (isRecording: Boolean) -> Unit,
-  viewModel: DeviceLogsViewModel = viewModel(),
+  onShowFiltersScreen: (PrepopulateFilterInfo?) -> Unit,
+  onShowSavedLogsScreen: () -> Unit,
+  onShowSettingsScreen: () -> Unit,
+  onShowSavedLogsViewerScreen: (Uri) -> Unit,
+  onNavBack: () -> Unit,
 ) {
+  val viewModel = viewModel<DeviceLogsViewModel>()
   val context = LocalContext.current
   val coroutineScope = rememberCoroutineScope()
   val focusManager = LocalFocusManager.current
@@ -221,7 +219,6 @@ fun DeviceLogsScreen(
   val appInfoMap by rememberUpdatedState(rememberAppInfoByUidMap())
   val lazyListState = rememberLazyListState()
 
-  val updatedStopRecordingSignal by rememberUpdatedState(stopRecordingSignal)
   var snapToBottom by rememberSaveable { mutableStateOf(true) }
 
   val snapToTopInteractionSource = remember { MutableInteractionSource() }
@@ -256,14 +253,14 @@ fun DeviceLogsScreen(
     if (!granted) {
       // TODO: show help text regarding why we need notifications permission.
     }
-    viewModel.startService()
+    viewModel.startService(context)
   }
 
   LaunchedEffect(viewModel, launcher) {
     if (Build.VERSION.SDK_INT >= 33) {
       launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
     } else {
-      viewModel.startService()
+      viewModel.startService(context)
     }
   }
 
@@ -306,7 +303,6 @@ fun DeviceLogsScreen(
     searchQuery = ""
   }
 
-  val activity = LocalActivity.current
   BackHandler(
     enabled = showSearchBar || viewModel.recordStatus.isIdle(),
   ) {
@@ -315,12 +311,15 @@ fun DeviceLogsScreen(
       closeSearchBar()
     } else {
       // Logcat service should get stopped automatically as the view model is cleared.
-      activity?.finish()
+      onNavBack()
     }
   }
 
   val restartLogCollectionTrigger = remember { Channel<Unit>(capacity = 1) }
 
+  val mainActivityViewModel = viewModel<MainActivityViewModel>(
+    viewModelStoreOwner = LocalActivity.current as ComponentActivity,
+  )
   val db = remember(context) { LogcatReaderDatabase.getInstance(context) }
   LaunchedEffect(viewModel, db, lifecycleOwner) {
     viewModel.logcatSessionStatus
@@ -343,7 +342,7 @@ fun DeviceLogsScreen(
             }
 
             launch {
-              updatedStopRecordingSignal.collect {
+              mainActivityViewModel.stopRecordingSignal.collect {
                 if (viewModel.recordStatus == RecordStatus.RecordingInProgress) {
                   if (logcatSession.isRecording) {
                     viewModel.recordStatus = RecordStatus.SaveRecordedLogs
@@ -445,12 +444,10 @@ fun DeviceLogsScreen(
       val startedRecordingMessage = stringResource(R.string.started_recording)
       val saveFailedMessage = stringResource(R.string.failed_to_save_logs)
 
-      val updatedOnRecordingStatusChanged by rememberUpdatedState(onRecordingStatusChanged)
       LaunchedEffect(viewModel) {
         snapshotFlow { viewModel.recordStatus }
           .map { it == RecordStatus.RecordingInProgress }
           .collect { isRecording ->
-            updatedOnRecordingStatusChanged(isRecording)
             viewModel.updateNotification(showStopRecording = isRecording)
           }
       }
@@ -582,8 +579,7 @@ fun DeviceLogsScreen(
         },
         onClickFilter = {
           showDropDownMenu = false
-          val intent = Intent(context, FiltersActivity::class.java)
-          context.startActivity(intent)
+          onShowFiltersScreen(null)
         },
         onClickDisplayOptions = {
           showDropDownMenu = false
@@ -615,7 +611,7 @@ fun DeviceLogsScreen(
         },
         onClickSavedLogs = {
           showDropDownMenu = false
-          context.startActivity(Intent(context, SavedLogsActivity::class.java))
+          onShowSavedLogsScreen()
         },
         onClickRestartLogcat = {
           showDropDownMenu = false
@@ -625,7 +621,7 @@ fun DeviceLogsScreen(
         },
         onClickSettings = {
           showDropDownMenu = false
-          context.startActivity(Intent(context, SettingsActivity::class.java))
+          onShowSettingsScreen()
         },
       )
       AnimatedVisibility(
@@ -811,6 +807,10 @@ fun DeviceLogsScreen(
         onDismiss = {
           viewModel.savedLogsSheetState = SavedLogsBottomSheetState.Hide
         },
+        onClickViewLogs = { uri ->
+          viewModel.savedLogsSheetState = SavedLogsBottomSheetState.Hide
+          onShowSavedLogsViewerScreen(uri)
+        }
       )
     }
 
@@ -963,19 +963,21 @@ fun DeviceLogsScreen(
         showCopyToClipboard = compactViewPreference,
         onDismiss = { viewModel.showLongClickOptionsSheet = null },
         onClickFilter = {
-          val intent = Intent(context, FiltersActivity::class.java)
-          intent.putExtra(FiltersActivity.EXTRA_LOG, log)
-          intent.putExtra(FiltersActivity.EXTRA_PACKAGE_NAME, packageName)
-          intent.putExtra(FiltersActivity.EXTRA_EXCLUDE, false)
-          context.startActivity(intent)
+          val prepopulateFilterInfo = PrepopulateFilterInfo(
+            log = log,
+            packageName = packageName,
+            exclude = false,
+          )
+          onShowFiltersScreen(prepopulateFilterInfo)
           viewModel.showLongClickOptionsSheet = null
         },
         onClickExclude = {
-          val intent = Intent(context, FiltersActivity::class.java)
-          intent.putExtra(FiltersActivity.EXTRA_LOG, log)
-          intent.putExtra(FiltersActivity.EXTRA_PACKAGE_NAME, packageName)
-          intent.putExtra(FiltersActivity.EXTRA_EXCLUDE, true)
-          context.startActivity(intent)
+          val prepopulateFilterInfo = PrepopulateFilterInfo(
+            log = log,
+            packageName = packageName,
+            exclude = true,
+          )
+          onShowFiltersScreen(prepopulateFilterInfo)
           viewModel.showLongClickOptionsSheet = null
         },
         onClickCopyToClipboard = {
@@ -1237,6 +1239,7 @@ private fun SavedLogsBottomSheet(
   uri: Uri,
   isCustomLocation: Boolean,
   onDismiss: () -> Unit,
+  onClickViewLogs: (Uri) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -1263,10 +1266,7 @@ private fun SavedLogsBottomSheet(
         modifier = Modifier
           .fillMaxWidth()
           .clickable {
-            onDismiss()
-            val intent = Intent(context, SavedLogsViewerActivity::class.java)
-            intent.setDataAndType(uri, "text/plain")
-            context.startActivity(intent)
+            onClickViewLogs(uri)
           },
         leadingContent = {
           Icon(imageVector = Icons.AutoMirrored.Default.ViewList, contentDescription = null)
@@ -1940,12 +1940,7 @@ private class LogFilter(
   }
 }
 
-class DeviceLogsViewModel(
-  application: Application,
-) : AndroidViewModel(application) {
-
-  private val context: Context
-    get() = getApplication<LogcatApp>().applicationContext
+class DeviceLogsViewModel : ViewModel() {
 
   private val logcatService = MutableStateFlow<LogcatService?>(null)
   private val _logcatSessionStatus = MutableStateFlow<LogcatSessionStatus?>(null)
@@ -1957,6 +1952,8 @@ class DeviceLogsViewModel(
   )
   var showCopyToClipboardSheet by mutableStateOf<Log?>(null)
   var showLongClickOptionsSheet by mutableStateOf<Log?>(null)
+
+  var serviceCleanup: ServiceCleanup? = null
 
   private val serviceConnection = object : ServiceConnection {
     override fun onServiceConnected(
@@ -1980,24 +1977,30 @@ class DeviceLogsViewModel(
     }
   }
 
-  fun startService() {
+  fun startService(context: Context) {
     Logger.debug(TAG, "LogcatService - start service")
-    LogcatService.start(context)
-    bindLogcatService()
+    val appContext = context.applicationContext
+    LogcatService.start(appContext)
+    bindLogcatService(appContext)
+    serviceCleanup = ServiceCleanup(
+      unbinder = {
+        Logger.debug(TAG, "LogcatService - unbind service")
+        appContext.unbindService(serviceConnection)
+      },
+      stopper = {
+        Logger.debug(TAG, "LogcatService - stop service")
+        LogcatService.stop(appContext)
+      }
+    )
   }
 
-  private fun bindLogcatService() {
+  private fun bindLogcatService(context: Context) {
     Logger.debug(TAG, "LogcatService - bind service")
     context.bindService(
       Intent(context, LogcatService::class.java),
       serviceConnection,
       Context.BIND_ABOVE_CLIENT,
     )
-  }
-
-  private fun unbindLogcatService() {
-    Logger.debug(TAG, "LogcatService - unbind service")
-    context.unbindService(serviceConnection)
   }
 
   private suspend fun watchLogcatService() {
@@ -2033,7 +2036,7 @@ class DeviceLogsViewModel(
   }
 
   override fun onCleared() {
-    unbindLogcatService()
+    serviceCleanup?.unbinder?.invoke()
     // Do not stop the service if recording is active!
     if (recordStatus.isIdle()) {
       // In cases where the app is closed and opened really quickly, `onCleared` gets called on the
@@ -2042,11 +2045,16 @@ class DeviceLogsViewModel(
       // clearing VM is the same as the one that bound to the service, and stop the service
       // accordingly.
       if (serviceBinderVmRefHashcode == System.identityHashCode(this)) {
-        Logger.debug(TAG, "LogcatService - stop service")
-        LogcatService.stop(context)
+        serviceCleanup?.stopper?.invoke()
       }
     }
+    serviceCleanup = null
   }
+
+  data class ServiceCleanup(
+    val unbinder: () -> Unit,
+    val stopper: () -> Unit,
+  )
 
   companion object {
     private var serviceBinderVmRefHashcode = -1

@@ -1,7 +1,6 @@
 package com.dp.logcatapp.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -146,8 +145,9 @@ private const val TIME_FORMAT = "HH:mm"
 fun FiltersScreen(
   modifier: Modifier,
   prepopulateFilterInfo: PrepopulateFilterInfo?,
-  viewModel: FiltersScreenViewModel = viewModel(),
+  onNavBack: () -> Unit,
 ) {
+  val viewModel = viewModel<FiltersScreenViewModel>()
   val context = LocalContext.current
   val db = remember(context) { LogcatReaderDatabase.getInstance(context) }
 
@@ -164,7 +164,6 @@ fun FiltersScreen(
     BackHandler { viewModel.selectedFilters = emptySet() }
   }
 
-  val activity = LocalActivity.current
   Scaffold(
     modifier = modifier,
     contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical),
@@ -180,9 +179,7 @@ fun FiltersScreen(
             text = stringResource(R.string.navigate_up),
           ) {
             IconButton(
-              onClick = {
-                activity?.finish()
-              },
+              onClick = onNavBack,
               colors = IconButtonDefaults.iconButtonColors(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
               ),

@@ -19,7 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import com.dp.logcat.LogcatSession
 import com.dp.logcat.LogcatUtil
 import com.dp.logcatapp.R
-import com.dp.logcatapp.activities.MainActivity
+import com.dp.logcatapp.ui.MainActivity
 import com.dp.logcatapp.util.SettingsPrefKeys
 import com.dp.logcatapp.util.getDefaultSharedPreferences
 import kotlinx.coroutines.Dispatchers

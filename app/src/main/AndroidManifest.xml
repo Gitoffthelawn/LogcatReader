@@ -29,7 +29,7 @@
       android:theme="@style/LightTheme"
       tools:ignore="GoogleAppIndexingWarning">
     <activity
-        android:name=".activities.MainActivity"
+        android:name=".ui.MainActivity"
         android:windowSoftInputMode="adjustResize"
         android:launchMode="singleTask"
         android:exported="true"
@@ -39,28 +39,6 @@
 
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
-    </activity>
-
-    <profileable
-        android:shell="true"
-        android:enabled="true"
-        tools:targetApi="29" />
-
-    <activity
-        android:name=".activities.FiltersActivity"
-        android:windowSoftInputMode="adjustResize"
-        android:launchMode="singleTask" />
-
-    <activity
-        android:name=".activities.SavedLogsActivity"
-        android:windowSoftInputMode="adjustResize"
-        android:launchMode="singleTask" />
-
-    <activity
-        android:name=".activities.SavedLogsViewerActivity"
-        android:exported="true"
-        android:windowSoftInputMode="adjustResize"
-        android:launchMode="singleTask">
       <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
@@ -74,10 +52,10 @@
       </intent-filter>
     </activity>
 
-    <activity
-        android:name=".activities.SettingsActivity"
-        android:windowSoftInputMode="adjustResize"
-        android:launchMode="singleTask" />
+    <profileable
+        android:shell="true"
+        android:enabled="true"
+        tools:targetApi="29" />
 
     <provider
         android:name="androidx.core.content.FileProvider"
