@@ -129,7 +129,6 @@ import com.dp.logcat.LogcatSession
 import com.dp.logcat.LogcatSession.RecordingFileInfo
 import com.dp.logcat.LogcatUtil
 import com.dp.logcatapp.R
-import com.dp.logcatapp.ui.MainActivityViewModel
 import com.dp.logcatapp.db.FilterInfo
 import com.dp.logcatapp.db.LogcatReaderDatabase
 import com.dp.logcatapp.db.RegexEnabledFilterType
@@ -142,6 +141,7 @@ import com.dp.logcatapp.searchlogs.searchLogs
 import com.dp.logcatapp.services.LogcatService
 import com.dp.logcatapp.services.LogcatService.LogcatSessionStatus
 import com.dp.logcatapp.services.getService
+import com.dp.logcatapp.ui.MainActivityViewModel
 import com.dp.logcatapp.ui.common.CopyLogClipboardBottomSheet
 import com.dp.logcatapp.ui.common.LOGCAT_DIR
 import com.dp.logcatapp.ui.common.LogsList
