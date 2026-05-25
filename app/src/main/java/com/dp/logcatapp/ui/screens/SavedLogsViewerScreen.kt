@@ -3,7 +3,6 @@ package com.dp.logcatapp.ui.screens
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -406,7 +405,6 @@ private fun AppBar(
   onDismissDropdownMenu: () -> Unit,
   onClickCompactView: () -> Unit,
 ) {
-  val activity = LocalActivity.current
   TopAppBar(
     navigationIcon = {
       WithTooltip(
